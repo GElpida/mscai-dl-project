@@ -1,4 +1,4 @@
-# BirdCLEF 2026 – Bird Species Classification Using CNN-Max and Mel Spectrograms
+# BirdCLEF 2026 – Bird Species Classification Using CNN and Mel Spectrograms
 
 ## Project Overview
 
