@@ -51,9 +51,9 @@ Each audio recording undergoes the following preprocessing steps:
 | Parameter         | Value     |
 | ----------------- | --------- |
 | Sample Rate       | 32,000 Hz |
-| Duration          | 60 sec    |
+| Duration          | 15 sec    |
 | Window Length     | 5 sec     |
-| Number of Windows | 12        |
+| Number of Windows | 3         |
 | Mel Bins          | 128       |
 | FFT Size          | 2048      |
 | Hop Length        | 512       |
