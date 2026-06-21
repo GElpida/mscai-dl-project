@@ -41,7 +41,7 @@ Each audio recording undergoes the following preprocessing steps:
 1. Load audio waveform.
 2. Convert to mono if necessary.
 3. Resample to 32 kHz.
-4. Pad or truncate to 60 seconds.
+4. Pad or truncate to 15 seconds.
 5. Split into twelve 5-second windows.
 6. Convert each window into a Mel Spectrogram.
 7. Convert amplitudes to decibel scale.
@@ -87,8 +87,8 @@ Example:
 Approximately:
 
 ```text
-12,150 recordings × 12 windows
-= 145,800 .pt files
+12,150 recordings × 3 windows
+= 36,450 .pt files
 ```
 
 ---
@@ -118,18 +118,18 @@ Output embedding size:
 
 ### Recording-Level Aggregation
 
-Each recording contains 12 spectrogram windows.
+Each recording contains 3 spectrogram windows.
 
 The workflow is:
 
 ```text
 Recording
     ↓
-12 Mel Spectrogram Windows
+3 Mel Spectrogram Windows
     ↓
 CNN Encoder
     ↓
-12 Embeddings
+3 Embeddings
     ↓
 Temporal Max Pooling
     ↓
@@ -152,8 +152,8 @@ The maximum activation across windows is retained, allowing the model to focus o
 | Learning Rate           | 3e-4             |
 | Weight Decay            | 1e-4             |
 | Batch Size              | 64               |
-| Maximum Epochs          | 100              |
-| Early Stopping Patience | 10               |
+| Maximum Epochs          | 60               |
+| Early Stopping Patience | 7                |
 | Loss Function           | CrossEntropyLoss |
 
 ---
@@ -178,7 +178,7 @@ Metrics include:
 
 The model with the lowest validation loss is automatically saved during training.
 
-Training stops automatically if validation loss does not improve for 10 consecutive epochs.
+Training stops automatically if validation loss does not improve for 7 consecutive epochs.
 
 ---
 
