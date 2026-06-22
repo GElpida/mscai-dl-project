@@ -44,7 +44,7 @@ mscai-dl-project/
 
 ### Prerequisites
 
-- A Google account with the BirdCLEF 2026 dataset already downloaded and placed in Google Drive (see [`datasets/birdclef_2026/README.md`](datasets/birdclef_2026/README.md) for download instructions).
+- A Google account with the BirdCLEF 2026 dataset already downloaded and placed in Google Drive (see [`datasets/birdclef_2026/README.md`](datasets/birdclef_2026/about_dataset.md) for download instructions).
 - All notebooks are designed to run on **Google Colab**.
 
 ### 1. Open in Google Colab
