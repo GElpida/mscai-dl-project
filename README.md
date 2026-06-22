@@ -168,7 +168,6 @@ Metrics include:
 * Macro F1 Score
 * Weighted F1 Score
 * Macro ROC-AUC
-* Top-1 Accuracy
 * Top-3 Accuracy
 * Top-5 Accuracy
 
