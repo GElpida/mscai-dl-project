@@ -1,225 +1,129 @@
-# BirdCLEF 2026 – Bird Species Classification Using CNN and Mel Spectrograms
+# Automated Wildlife Species Recognition Using Deep Learning on Bioacoustic Data
 
-## Project Overview
-
-This notebook implements a deep learning pipeline for bird species classification using audio recordings from the BirdCLEF 2026 dataset (https://www.kaggle.com/competitions/birdclef-2026).
-
-The approach converts raw bird audio recordings into Mel Spectrograms and uses a Convolutional Neural Network (CNN) with max pooling across temporal windows to classify recordings into one of 30 bird species.
+**Course:** Deep Learning — MSc in AI, Semester 2  
+**Dataset:** [BirdCLEF 2026](https://www.kaggle.com/competitions/birdclef-2026/data) (Kaggle)
 
 ---
 
-## Dataset Preparation
+## Abstract
 
-The BirdCLEF 2026 training metadata (`train.csv`) is used to identify available recordings and species labels.
-
-### Species Selection
-
-To maintain class balance and manageable training time:
-
-* Top 30 most represented bird species are selected.
-* 405 recordings are sampled from each species.
-* Total recordings used: 12,150.
-
-### Train / Validation / Test Split
-
-The balanced dataset is split using stratified sampling:
-
-| Split      | Percentage | Recordings |
-| ---------- | ---------- | ---------- |
-| Train      | 70%        | 8,505      |
-| Validation | 15%        | 1,822      |
-| Test       | 15%        | 1,823      |
-
-The validation set is used for model selection and early stopping, while the test set is reserved for final performance evaluation.
+This project addresses automatic bird species classification from raw audio recordings using the BirdCLEF 2026 competition dataset. To obtain a balanced training set, the 30 most frequently recorded species are selected, capped at 405 recordings each (the size of the smallest class), yielding 12,150 recordings in total. Each audio clip is resampled at 32 kHz and converted to a log-scale Mel spectrogram (n_fft=2048, hop_length=512, 128 Mel bins); only the first 15 seconds are used, split into three non-overlapping 5-second windows, producing a per-recording tensor of shape `[3, 1, 128, 313]`. Two custom architectures are evaluated: a pure CNN with Max Pooling over the three time windows, and a hybrid CNN-BiLSTM that treats the window sequence as a temporal input. Both are compared against a baseline of pretrained Perch bioacoustic embeddings combined with Logistic Regression. On the clean test set, Perch+LR achieves ~0.92 accuracy, the CNN ~0.79, and the CNN-BiLSTM ~0.66; a follow-up noise-robustness experiment (medium and heavy natural soundscape mixing) confirms that Perch embeddings degrade far less than the end-to-end CNN models.
 
 ---
 
-## Audio Preprocessing
+## Repository Structure
 
-Each audio recording undergoes the following preprocessing steps:
+```
+mscai-dl-project/
+│
+├── datasets/
+│   └── birdclef_2026/
+│       └── about_dataset.md     # Dataset overview and download instructions
+│
+├── exams_2026/
+│   ├── report.pdf               # Project report
+│   └── presentation.pdf         # Project presentation slides
+│
+├── notebooks/
+│   ├── 01_preprocessing.ipynb   # Species selection, mel spectrogram generation,
+│   │                            #   train/val/test split, .pt file export
+│   ├── 02_train_eval.rar        # Model definitions (CNN, CNN-BiLSTM, Perch+LR),
+│   │                            #   training loops, and clean-data evaluation (compressed)
+│   └── 03_eval_noise_data.ipynb # Noise-robustness evaluation: soundscape mixing
+│                                #   at multiple SNR levels, CNN vs Perch comparison
+│
+├── .gitignore
+└── LICENSE                      # MIT
+```
 
-1. Load audio waveform.
-2. Convert to mono if necessary.
-3. Resample to 32 kHz.
-4. Pad or truncate to 15 seconds.
-5. Split into twelve 5-second windows.
-6. Convert each window into a Mel Spectrogram.
-7. Convert amplitudes to decibel scale.
-
-### Mel Spectrogram Parameters
-
-| Parameter         | Value     |
-| ----------------- | --------- |
-| Sample Rate       | 32,000 Hz |
-| Duration          | 15 sec    |
-| Window Length     | 5 sec     |
-| Number of Windows | 3         |
-| Mel Bins          | 128       |
-| FFT Size          | 2048      |
-| Hop Length        | 512       |
+> **Note:** `02_train_eval.rar` must be extracted before use. Extract it in the `notebooks/` directory to obtain the training/evaluation notebook.
 
 ---
 
-## Mel Spectrogram Storage
+## Setup and Usage
 
-To avoid recomputing spectrograms during every training run, each spectrogram window is stored as a PyTorch `.pt` file.
+### Prerequisites
 
-Each file contains:
+- A Google account with the BirdCLEF 2026 dataset already downloaded and placed in Google Drive (see [`datasets/birdclef_2026/README.md`](datasets/birdclef_2026/README.md) for download instructions).
+- All notebooks are designed to run on **Google Colab**.
 
-* Mel Spectrogram tensor
-* Species label ID
-* Species name
-* Source audio path
-* Window index
+### 1. Open in Google Colab
 
-Example:
+Upload or clone the repository, then open each notebook directly in Colab. Enable a GPU runtime before running:
+
+```
+Runtime → Change runtime type → Hardware accelerator → GPU (T4 or better)
+```
+
+### 2. Mount Google Drive
+
+Each notebook begins with a Drive mount cell. Run it and authenticate when prompted:
 
 ```python
-{
-    "mel": tensor(...),
-    "label": 7,
-    "primary_label": "amecro",
-    "source_file": "...",
-    "window_idx": 0
-}
+from google.colab import drive
+drive.mount('/content/drive')
 ```
 
-Approximately:
+Then update the dataset path variable near the top of the notebook to match your own Drive folder layout, e.g.:
 
-```text
-12,150 recordings × 3 windows
-= 36,450 .pt files
+```python
+DATA_ROOT = '/content/drive/MyDrive/birdclef-2026/'
 ```
 
----
+### 3. Dependencies
 
-## Model Architecture
+The following non-standard packages are required. Standard Colab already ships with `torch`, `torchaudio`, `scikit-learn`, `pandas`, `numpy`, and `matplotlib`. Install the remaining ones at the top of any notebook that uses them:
 
-### CNN Encoder
-
-Each spectrogram window is treated as a grayscale image.
-
-The encoder consists of:
-
-* Convolutional Layers
-* Batch Normalization
-* ReLU Activation
-* Max Pooling
-* Adaptive Average Pooling
-* Dense Projection Layer
-
-Output embedding size:
-
-```text
-512 dimensions
+```bash
+pip install librosa soundfile
 ```
 
----
+Notebook `02_train_eval` (inside the `.rar`) additionally uses the **Perch** bioacoustic embedding model. Follow any `pip install` cells present in that notebook for TensorFlow / TF Hub setup.
 
-### Recording-Level Aggregation
+Full dependency list:
 
-Each recording contains 3 spectrogram windows.
+| Package | Purpose |
+|---|---|
+| `torch` / `torchaudio` | Model training and audio I/O |
+| `librosa` | Audio loading and spectrogram utilities |
+| `soundfile` | OGG audio decoding |
+| `scikit-learn` | Data splitting, Logistic Regression, evaluation metrics |
+| `joblib` | Saving / loading trained sklearn models |
+| `pandas` / `numpy` | Data manipulation |
+| `matplotlib` | Visualization |
+| `google.colab` | Drive mounting and Colab utilities |
 
-The workflow is:
+### 4. Run Order
 
-```text
-Recording
-    ↓
-3 Mel Spectrogram Windows
-    ↓
-CNN Encoder
-    ↓
-3 Embeddings
-    ↓
-Temporal Max Pooling
-    ↓
-Recording Embedding
-    ↓
-Classification Layer
-    ↓
-Species Prediction
-```
+Run notebooks in this order:
 
-The maximum activation across windows is retained, allowing the model to focus on the most informative bird vocalizations within a recording.
+| Step | Notebook | What it does |
+|---|---|---|
+| 1 | `01_preprocessing.ipynb` | Reads raw `.ogg` files from Drive, selects 30 species, generates Mel spectrograms, performs train/val/test split, and exports `.pt` tensor files back to Drive |
+| 2 | `02_train_eval` *(extracted from `.rar`)* | Defines CNN and CNN-BiLSTM architectures and the Perch+LR baseline; trains each model on the preprocessed tensors; evaluates on the clean test split |
+| 3 | `03_eval_noise_data.ipynb` | Loads the saved models, synthesises noisy test audio by mixing with unlabelled soundscapes at multiple SNR levels, and reports accuracy / F1 / top-k metrics for each model and noise level |
 
 ---
 
-## Training Configuration
+## Results Summary
 
-| Parameter               | Value            |
-| ----------------------- | ---------------- |
-| Optimizer               | AdamW            |
-| Learning Rate           | 3e-4             |
-| Weight Decay            | 1e-4             |
-| Batch Size              | 64               |
-| Maximum Epochs          | 60               |
-| Early Stopping Patience | 7                |
-| Loss Function           | CrossEntropyLoss |
+### Clean Test Set
 
----
+| Model | Accuracy |
+|---|---|
+| Perch + Logistic Regression | ~0.92 |
+| CNN (Max Pooling) | ~0.79 |
+| CNN-BiLSTM | ~0.66 |
 
-## Evaluation Metrics
+### Noise Robustness (100 test samples) - Accuracy
 
-Performance is monitored on the validation set during training and evaluated on the held-out test set after training.
-
-Metrics include:
-
-* Accuracy
-* Macro F1 Score
-* Weighted F1 Score
-* Macro ROC-AUC
-* Top-3 Accuracy
-* Top-5 Accuracy
+| Model | Medium noise | Heavy noise |
+|---|---|---|
+| CNN (Max Pooling) | 0.54 | 0.46 |
+| Perch + LR | 0.76 | 0.73 |
 
 ---
 
-## Model Selection
+## Authors
 
-The model with the lowest validation loss is automatically saved during training.
-
-Training stops automatically if validation loss does not improve for 7 consecutive epochs.
-
----
-
-## Final Workflow
-
-```text
-BirdCLEF Audio Recordings
-            ↓
-Species Selection (Top 30)
-            ↓
-Balanced Sampling (405 / Species)
-            ↓
-Train / Validation / Test Split
-            ↓
-Audio Preprocessing
-            ↓
-Mel Spectrogram Generation
-            ↓
-Storage as .pt Files
-            ↓
-CNN Encoder
-            ↓
-Max Pooling Across Windows
-            ↓
-Species Classification
-            ↓
-Performance Evaluation
-```
-
----
-
-## Expected Outputs
-
-The notebook produces:
-
-* Saved Mel Spectrogram tensors (`.pt`)
-* Trained CNN-Max model
-* Best model checkpoint
-* Training history
-* Validation metrics
-* Final test metrics
-* Classification report
-* Spectrogram visualizations
-
-This implementation serves as a complete end-to-end pipeline for bird species classification from audio recordings using deep learning and Mel Spectrogram representations.
+**Elpida Gkouvra** (mtn2504) · **Stella Chantava** (mtn2528)
