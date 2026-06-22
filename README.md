@@ -7,7 +7,18 @@
 
 ## Abstract
 
-This project addresses automatic bird species classification from raw audio recordings using the BirdCLEF 2026 competition dataset. To obtain a balanced training set, the 30 most frequently recorded species are selected, capped at 405 recordings each (the size of the smallest class), yielding 12,150 recordings in total. Each audio clip is resampled at 32 kHz and converted to a log-scale Mel spectrogram (n_fft=2048, hop_length=512, 128 Mel bins); only the first 15 seconds are used, split into three non-overlapping 5-second windows, producing a per-recording tensor of shape `[3, 1, 128, 313]`. Two custom architectures are evaluated: a pure CNN with Max Pooling over the three time windows, and a hybrid CNN-BiLSTM that treats the window sequence as a temporal input. Both are compared against a baseline of pretrained Perch bioacoustic embeddings combined with Logistic Regression. On the clean test set, Perch+LR achieves ~0.92 accuracy, the CNN ~0.79, and the CNN-BiLSTM ~0.66; a follow-up noise-robustness experiment (medium and heavy natural soundscape mixing) confirms that Perch embeddings degrade far less than the end-to-end CNN models.
+This project addresses automatic bird species classification from raw audio recordings using the BirdCLEF 2026 competition dataset. To obtain a balanced training set, the 30 most frequently recorded species are selected, capped at 405 recordings each (the size of the smallest class), yielding 12, 150 recordings in total. Each audio clip is converted to a log-scale Mel spectrogram; only the first 15 seconds are used, split into three non-overlapping 5-second windows. Two custom architectures are evaluated: a pure CNN with Max Pooling over the three time windows, and a hybrid CNN-BiLSTM that treats the window sequence as a temporal input. Both are compared against a baseline of pretrained Perch bioacoustic embeddings combined with Logistic Regression. On the clean test set, Perch+LR achieves ~0.92 accuracy, the CNN ~0.79, and the CNN-BiLSTM ~0.66; a follow-up noise-robustness experiment (medium and heavy natural soundscape mixing) confirms that Perch embeddings degrade far less than the end-to-end CNN models.
+
+**Audio preprocessing parameters:**
+
+| Parameter | Value |
+|---|---|
+| Sampling rate | 32,000 Hz |
+| FFT size (`n_fft`) | 2048 |
+| Hop length | 512 |
+| Mel bins | 128 |
+| Input duration | 15 s → 3 × 5 s windows |
+| Input tensor shape | `[3, 1, 128, 313]` |
 
 ---
 
